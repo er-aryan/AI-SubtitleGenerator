@@ -32,7 +32,8 @@ vosk_models/
 hf_cache/
 huggingface/
 
-# Uploads / generated files
+# Uploads / generated file
+output/
 uploads/
 chunks/
 subtitles/
