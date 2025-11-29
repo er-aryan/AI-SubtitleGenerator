@@ -10,6 +10,7 @@ env/
 venv/
 
 # Model files (very large)
+output/
 models/
 *.bin
 *.pt
@@ -33,7 +34,6 @@ hf_cache/
 huggingface/
 
 # Uploads / generated file
-output/
 uploads/
 chunks/
 subtitles/

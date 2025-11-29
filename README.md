@@ -51,7 +51,7 @@ SubtitleGenAI is a full-stack AI subtitle generation platform featuring:
 ## 1️⃣ Clone repository
 
 ```bash
-git clone https://github.com/<your-username>/AI-SubtitleGenerator
+git clone https://github.com/er-aryan/AI-SubtitleGenerator
 cd AI-SubtitleGenerator
 ```
 
