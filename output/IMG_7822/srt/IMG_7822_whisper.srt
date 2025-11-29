@@ -1,0 +1,20 @@
+1
+00:00:00,000 --> 00:00:01,000
+Hello, how are you?
+
+2
+00:00:01,000 --> 00:00:03,000
+How is your day going?
+
+3
+00:00:03,000 --> 00:00:05,000
+Are you fine?
+
+4
+00:00:05,000 --> 00:00:08,000
+What are you going to do for dinner?
+
+5
+00:00:08,000 --> 00:00:10,000
+And then what are your tomorrow's plans?
+

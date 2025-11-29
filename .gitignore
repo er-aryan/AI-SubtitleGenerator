@@ -1,53 +1,53 @@
 # Python
 __pycache__/
-*.py[cod]
-*$py.class
+*.pyc
+*.pyo
+*.pyd
 
-# Virtualenvs
+# Virtual environment
 .venv/
-venv/
 env/
-ENV/
+venv/
 
-# Editor / OS
-.vscode/
-.idea/
-.DS_Store
-*.swp
-*.swo
-
-# Logs and runtime
-*.log
-*.pid
-*.seed
-
-# Python packaging
-build/
-dist/
-*.egg-info/
-
-# Jupyter
-.ipynb_checkpoints/
-
-# Secrets/env
-.env
-.env.* 
-secrets.json
-credentials.json
-
-# Local data, large binaries and models
-media/
+# Model files (very large)
 models/
-output/
-uploads/
-
-# Temporary and caches
-*.tmp
-.cache/
-pip-wheel-metadata/
-
-# Optional: model checkpoints, torch artifacts
+*.bin
 *.pt
-*.pth
-*.ckpt
+*.onnx
+*.pb
+*.zip
 *.tar.gz
+
+# Whisper model folders
+whisper/
+whisper_models/
+openai_whisper_models/
+
+# Vosk model folders
+vosk-model-*/
+vosk_models/
+
+# Wav2Vec2 or HuggingFace caches
+~/.cache/huggingface/
+hf_cache/
+huggingface/
+
+# Uploads / generated files
+uploads/
+chunks/
+subtitles/
+results/
+tmp/
+temp/
+
+# Logs
+*.log
+
+# MacOS
+.DS_Store
+
+# VSCode
+.vscode/
+
+# My own code editor settings
+SubtitleWorkbench.ipynb

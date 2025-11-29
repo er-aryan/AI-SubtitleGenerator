@@ -1,5 +1,14 @@
 document.addEventListener('DOMContentLoaded', function(){
   // ========================================
+  // API CONFIGURATION
+  // ========================================
+  // Use an explicit global override when present (set `window.SUBTITLEGEN_API_BASE`),
+  // otherwise default to the current origin so local testing works without a tunnel.
+  const API_BASE_URL = (typeof window !== 'undefined' && window.SUBTITLEGEN_API_BASE)
+    ? window.SUBTITLEGEN_API_BASE
+    : (typeof location !== 'undefined' ? location.origin : '');
+
+  // ========================================
   // FULL-SCREEN TERMINAL WORKFLOW
   // ========================================
 
@@ -434,6 +443,21 @@ document.addEventListener('DOMContentLoaded', function(){
 
   if(!form) return;
 
+  // Debug: ensure generate button is visibly interactive and log click state
+  if(submitBtn){
+    try{
+      submitBtn.style.cursor = 'pointer';
+      submitBtn.addEventListener('click', () => {
+        try{
+          console.log('submitBtn clicked', { disabled: submitBtn.disabled, uploaded_filename: (uploadedFilenameInput ? uploadedFilenameInput.value : null) });
+          if(!uploadedFilenameInput || !uploadedFilenameInput.value){
+            appendLog('Please upload a video before generating. Click the Upload button or drag a file onto the page.');
+          }
+        }catch(e){ console.warn('submitBtn click handler failed', e); }
+      });
+    }catch(e){ /* silent */ }
+  }
+
   // Drag & drop
   if(dropZone) {
     ['dragenter','dragover'].forEach(e => dropZone.addEventListener(e, ev => {
@@ -506,7 +530,7 @@ document.addEventListener('DOMContentLoaded', function(){
     // Ask server which chunks it already has (resume support)
     let received = [];
     try {
-      const statusResp = await fetch(`/upload_status?upload_id=${encodeURIComponent(uploadId)}`);
+      const statusResp = await fetch(`${API_BASE_URL}/upload_status?upload_id=${encodeURIComponent(uploadId)}`);
       if(statusResp.ok) {
         const statusJson = await statusResp.json();
         received = statusJson.received || [];
@@ -531,7 +555,7 @@ document.addEventListener('DOMContentLoaded', function(){
       formData.append('filename', file.name);
 
       try {
-        const res = await fetch('/upload_chunk', {
+        const res = await fetch(`${API_BASE_URL}/upload_chunk`, {
           method: 'POST',
           headers: {
             'X-Upload-Id': uploadId,
@@ -557,7 +581,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if(assembled) {
       uploadedFilenameInput.value = file.name;
       if(videoPlayerMain){
-        videoPlayerMain.src = `/files/media/${file.name}`;
+        videoPlayerMain.src = `${API_BASE_URL}/files/media/${file.name}`;
         try{ videoPlayerMain.load(); }catch(e){}
       }
     } else {
@@ -571,6 +595,8 @@ document.addEventListener('DOMContentLoaded', function(){
   const resultsBox = document.getElementById('results');
   const errorsBox = document.getElementById('errors');
   let currentEventSource = null;
+  // interim segments used for live preview of partial SRTs
+  let interimSegments = [];
 
   function appendLog(message){
     if(!logEl) return;
@@ -616,7 +642,7 @@ document.addEventListener('DOMContentLoaded', function(){
         const model = modelFromPath(path);
         const downloadName = `${label}-${model || 'subtitle'}.srt`.replace(/\s+/g,'_');
         const a = document.createElement('a');
-        a.href = `/files/${path}`;
+        a.href = `${API_BASE_URL}/files/${path}`;
         a.download = downloadName;
         document.body.appendChild(a); a.click(); a.remove();
         notifyEditor(generatedSrtPaths, path);
@@ -648,17 +674,83 @@ document.addEventListener('DOMContentLoaded', function(){
     let msg = '';
     if(typeof payload === 'string'){
       msg = payload;
+      appendLog(msg);
     } else if(payload && payload.type === 'partial' && payload.path){
       msg = `Partial SRT ready (${payload.model || 'model'}): ${payload.path}`;
-      renderResults([payload.path]);
+      appendLog(msg);
+      // also add to results list (keeps UI behavior) and attempt a live preview on the main video
+      try{ renderResults([payload.path]); }catch(e){ console.warn('renderResults failed', e); }
+
+      // fetch and parse SRT for live preview overlay
+      (async ()=>{
+        try{
+          const resp = await fetch(`${API_BASE_URL}/files/` + encodeURIComponent(payload.path));
+          if(!resp.ok) return;
+          const srtText = await resp.text();
+          const lines = srtText.split('\n');
+          const segments = [];
+          let current = null;
+          for(let i=0;i<lines.length;i++){
+            const line = lines[i].trim();
+            if(!line) continue;
+            if(/^\d+$/.test(line)){
+              if(current) segments.push(current);
+              current = null;
+            } else if(line.includes(' --> ')){
+              const parts = line.split(' --> ');
+              if(parts.length===2){
+                const start = parseSRTTime(parts[0].trim());
+                const end = parseSRTTime(parts[1].trim());
+                current = {start, end, text: ''};
+              }
+            } else if(current){
+              current.text += (current.text ? '\n' : '') + line;
+            }
+          }
+          if(current) segments.push(current);
+          if(segments.length) {
+            interimSegments = segments;
+            // ensure overlay update run
+            updateMainVideoSubtitle();
+          }
+        }catch(e){ console.warn('parse SRT failed', e); }
+      })();
     } else {
       msg = JSON.stringify(payload);
+      appendLog(msg);
     }
-    appendLog(msg);
+
+    // progress step heuristics
     const lower = msg.toLowerCase();
     if(lower.includes('translat')) updateProgressStep('translating');
     else if(lower.includes('export') || lower.includes('.srt')) updateProgressStep('exporting');
     else updateProgressStep('transcribing');
+  }
+
+  // Live subtitle overlay update for the main preview video
+  const videoSubtitleOverlayMain = document.getElementById('videoSubtitleOverlayMain');
+  function updateMainVideoSubtitle(){
+    try{
+      if(!videoPlayerMain || !interimSegments || interimSegments.length===0) return;
+      const t = videoPlayerMain.currentTime;
+      let found = -1;
+      for(let i=0;i<interimSegments.length;i++){
+        const s = interimSegments[i];
+        if(t >= s.start && t <= s.end){ found = i; break; }
+      }
+      if(found >= 0 && videoSubtitleOverlayMain){
+        videoSubtitleOverlayMain.textContent = interimSegments[found].text;
+        videoSubtitleOverlayMain.style.display = 'block';
+      } else if(videoSubtitleOverlayMain){
+        videoSubtitleOverlayMain.style.display = 'none';
+      }
+    }catch(e){ console.warn('updateMainVideoSubtitle failed', e); }
+  }
+  // bind events once
+  if(videoPlayerMain){
+    videoPlayerMain.addEventListener('timeupdate', updateMainVideoSubtitle);
+    videoPlayerMain.addEventListener('play', updateMainVideoSubtitle);
+    videoPlayerMain.addEventListener('seeked', updateMainVideoSubtitle);
   }
 
   function handleDone(payload){
@@ -685,7 +777,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function startProgressStream(jobId){
     if(currentEventSource){ currentEventSource.close(); }
-    currentEventSource = new EventSource(`/events/${jobId}`);
+    currentEventSource = new EventSource(`${API_BASE_URL}/events/${jobId}`);
     currentEventSource.onmessage = ev => {
       let data;
       try { data = JSON.parse(ev.data); } catch(e){ return; }
@@ -725,11 +817,19 @@ document.addEventListener('DOMContentLoaded', function(){
       const fd = new FormData();
       const modelInput = form.querySelector('input[name="model"]');
       fd.append('model', modelInput ? modelInput.value : 'whisper');
-      fd.append('uploaded_filename', uploadedFilenameInput.value);
+      // If the resumable upload assembled file on the server, send its name.
+      // Otherwise, if the user selected a local file but didn't finish chunked upload,
+      // include the file directly so the server can receive it in this request.
+      if(uploadedFilenameInput && uploadedFilenameInput.value){
+        fd.append('uploaded_filename', uploadedFilenameInput.value);
+      } else if(videoFileInput && videoFileInput.files && videoFileInput.files.length){
+        // Attach the raw file so the server will receive and process it immediately.
+        fd.append('video', videoFileInput.files[0]);
+      }
       langs.forEach(l => fd.append('languages', l));
 
       try {
-        const resp = await fetch('/generate', { method: 'POST', body: fd });
+        const resp = await fetch(`${API_BASE_URL}/generate`, { method: 'POST', body: fd });
         const j = await resp.json();
         if(!resp.ok || !j.job_id) throw new Error(j.error || 'Failed to start generation');
         appendLog('Job started...');
@@ -822,6 +922,23 @@ document.addEventListener('DOMContentLoaded', function(){
         }
       });
     }
+  })();
+
+  // Install modal handlers (from legacy script) — shows install command and copy action
+  (function(){
+    const installModal = document.getElementById('installModal');
+    const copyBtn = document.getElementById('copyInstall');
+    const closeBtn = document.getElementById('closeInstall');
+    if(closeBtn) closeBtn.addEventListener('click', ()=>{ if(installModal) installModal.style.display='none'; });
+    if(copyBtn) copyBtn.addEventListener('click', ()=>{
+      const cmdEl = document.getElementById('installCmd');
+      const cmd = (cmdEl && cmdEl.textContent) ? cmdEl.textContent : '';
+      if(!cmd) return;
+      navigator.clipboard.writeText(cmd).then(()=>{
+        copyBtn.textContent = 'Copied';
+        setTimeout(()=>copyBtn.textContent='Copy', 1500);
+      });
+    });
   })();
 
 });
