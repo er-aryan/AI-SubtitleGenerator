@@ -1,0 +1,9 @@
+Flask>=2.0
+# Optional (install what you need for the models you plan to use):
+# whisper
+# git+https://github.com/openai/whisper.git
+# torch (install CPU or GPU build appropriate for your machine)
+# transformers
+# nemo-toolkit[asr]
+# vosk
+# snakers4/silero-models via torch.hub requires torch

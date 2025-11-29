@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SubtitleGen - Terminal</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body class="terminal-page">
+    <!-- Full-screen terminal -->
+    <div id="terminal" class="full-terminal">
+      <div class="terminal-body">
+        <div id="terminalOutput" class="terminal-output"></div>
+        
+        <!-- Step 1: Theme Selection (shown after hello) -->
+        <div id="themeSelector" class="terminal-interactive" style="display:none; margin-top:16px">
+          <div style="margin-bottom:12px">Which mode do you prefer?</div>
+          <div style="display:flex; gap:12px; flex-wrap:wrap">
+            <button id="themeDarkBtn" class="terminal-theme-btn terminal-theme-dark">🌙 Dark Mode</button>
+            <button id="themeLightBtn" class="terminal-theme-btn terminal-theme-light">☀️ Light Mode</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Tab Navigation (shown after theme selection) -->
+        <div id="tabContainer" style="display:none; margin-top:20px">
+          <div class="terminal-welcome" id="welcomeMessage"></div>
+          
+          <div class="terminal-tabs">
+            <button class="terminal-tab active" data-tab="intro">Intro</button>
+            <button class="terminal-tab" data-tab="tech">What I Used</button>
+            <button class="terminal-tab" data-tab="usage">How to Use</button>
+            <button class="terminal-tab enter-project" data-tab="enter">Enter Project →</button>
+          </div>
+
+          <div class="terminal-tab-content">
+            <!-- Intro Tab -->
+            <div id="tab-intro" class="tab-pane active">
+              <div class="terminal-section-title">About SubtitleGen</div>
+              <div class="terminal-text">SubtitleGen is your local AI-powered subtitle generator.</div>
+              <div class="terminal-text">Upload videos, choose speech recognition backend, generate</div>
+              <div class="terminal-text">subtitles in 50+ languages. 100% private. Zero cloud uploads.</div>
+              
+              <div class="terminal-section-title" style="margin-top:16px">Features</div>
+              <div class="terminal-text">✓ 100% Private — Everything runs locally</div>
+              <div class="terminal-text">✓ 50+ Languages — Multilingual support</div>
+              <div class="terminal-text">✓ Live Preview — See subtitles in real-time</div>
+              <div class="terminal-text">✓ Full Editor — Adjust timing & text</div>
+              <div class="terminal-text">✓ Resumable Uploads — Robust file handling</div>
+              <div class="terminal-text">✓ Dark/Light Mode — Work in your style</div>
+            </div>
+
+            <!-- Tech Stack Tab -->
+            <div id="tab-tech" class="tab-pane">
+              <div class="terminal-section-title">Technology Stack</div>
+              <div class="terminal-text"><span style="color:#22c55e">►</span> OpenAI Whisper — State-of-the-art ASR</div>
+              <div class="terminal-text"><span style="color:#22c55e">►</span> Wav2Vec2 — Fast, accurate alternative</div>
+              <div class="terminal-text"><span style="color:#22c55e">►</span> Flask — Lightweight web framework</div>
+              <div class="terminal-text"><span style="color:#22c55e">►</span> HTML5 Video — Native playback</div>
+              <div class="terminal-text"><span style="color:#22c55e">►</span> SRT Format — Universal subtitles</div>
+              <div class="terminal-text"><span style="color:#22c55e">►</span> Python 3.12 — Modern async support</div>
+              
+              <div class="terminal-section-title" style="margin-top:16px">Key Libraries</div>
+              <div class="terminal-text">• transformers — HuggingFace models</div>
+              <div class="terminal-text">• torchaudio — Audio processing</div>
+              <div class="terminal-text">• pysrt — SRT file handling</div>
+              <div class="terminal-text">• google-cloud-translate — Translation</div>
+            </div>
+
+            <!-- How to Use Tab -->
+            <div id="tab-usage" class="tab-pane">
+              <div class="terminal-section-title">Quick Start Guide</div>
+              
+              <div class="terminal-step">
+                <span class="terminal-step-num">1</span>
+                <span>Upload your video file (MP4, WebM, MOV)</span>
+              </div>
+              
+              <div class="terminal-step">
+                <span class="terminal-step-num">2</span>
+                <span>Choose ASR backend (Whisper recommended)</span>
+              </div>
+              
+              <div class="terminal-step">
+                <span class="terminal-step-num">3</span>
+                <span>Select target languages (optional)</span>
+              </div>
+              
+              <div class="terminal-step">
+                <span class="terminal-step-num">4</span>
+                <span>Generate subtitles (watch progress in real-time)</span>
+              </div>
+              
+              <div class="terminal-step">
+                <span class="terminal-step-num">5</span>
+                <span>Download SRT files or edit in the built-in editor</span>
+              </div>
+
+              <div class="terminal-section-title" style="margin-top:16px">Pro Tips</div>
+              <div class="terminal-text">• Larger models (base/small) are more accurate</div>
+              <div class="terminal-text">• Translation requires google-cloud-translate setup</div>
+              <div class="terminal-text">• Use editor to fine-tune timing and text</div>
+              <div class="terminal-text">• Resumable uploads continue if connection drops</div>
+            </div>
+
+            <!-- Enter Project Tab (Loading) -->
+            <div id="tab-enter" class="tab-pane">
+              <div id="enterProjectContent">
+                <div class="terminal-loading-message">Initializing SubtitleGen...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden main UI (shown after terminal flow completes) -->
+    <div id="mainContainer" style="display:none">
+      <!-- Top-right controls -->
+      <div class="top-right-controls">
+        <button id="uploadQuickBtn" class="theme-toggle-btn upload-toggle-btn" title="Upload new video"></button>
+        <button id="themeToggleBtn" class="theme-toggle-btn" title="Toggle dark/light mode"></button>
+      </div>
+      <!-- Minimal landing view shown first -->
+      <div id="minimalView" class="minimal-view">
+        <h1 style="margin:0">SubtitleGenAI</h1>
+        <p class="muted small" style="margin-top:12px">Your local AI-powered subtitle generation tool. No cloud uploads, no subscriptions, no nonsense.</p>
+        <div style="margin-top:28px; text-align:center">
+          <button id="minimalUploadBtn" class="primary" style="padding:12px 24px; font-size:16px">Upload Video 🎥</button>
+          <div class="muted small" style="margin-top:10px">or drag & drop a file after upload begins</div>
+        </div>
+      </div>
+
+      <div class="card" id="fullCard" style="display:none">
+        <h1 id="appTitle" style="cursor:pointer">SubtitleGenAI</h1>
+
+        <form id="uploadForm" action="/generate" method="post" enctype="multipart/form-data">
+          <!-- Hidden file input (upload triggered from minimalist view) -->
+          <input type="file" name="video" accept="video/*" id="videoFileInput" style="display:none" />
+          <input type="hidden" name="uploaded_filename" id="uploaded_filename" />
+
+          <!-- Main video preview (above tabs) - hidden until upload completes -->
+          <div id="videoPlayerContainer" style="display:none;margin-top:16px;">
+            <div class="video-wrapper" style="border-radius:12px;overflow:hidden;">
+              <video id="videoPlayerMain" controlsList="noplaybackrate nodownload" controls style="width:100%;height:auto;background:#000"></video>
+              <div id="videoSubtitleOverlayMain" class="video-subtitle-overlay"></div>
+            </div>
+          </div>
+
+          <div class="tabs" role="tablist" aria-label="Main tabs">
+            <div class="tab hidden-until-upload active" data-target="tab-subtitle" style="display:block">Subtitle</div>
+            <div class="tab hidden-until-upload" data-target="tab-editor" style="display:none">Editor</div>
+          </div>
+
+            <div class="tab-content">
+            <!-- Welcome pane removed; subtitle pane shown below -->
+
+            <div id="tab-subtitle" class="tab-pane" style="display:block">
+
+              <input type="hidden" name="model" value="whisper" />
+              <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start">
+                <div>
+                  <div class="models-grid" style="margin-top:8px">
+                    {% for m in models %}
+                    <div class="model-card {% if not m.available %}disabled{% endif %}" data-name="{{m.name}}">
+                      <div class="flex">
+                        <div>
+                          <div class="model-name">{{ m.name | upper }}</div>
+                          <div class="model-desc">{% if m.available %}Installed{% else %}Not installed{% endif %}</div>
+                        </div>
+                        <div style="margin-left:auto">
+                          <span class="badge">{% if m.available %}Ready{% else %}Missing{% endif %}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.03)">
+                  <div class="muted small">Target languages (optional)</div>
+                  <div style="margin-top:8px">
+                    <div class="muted small">Popular</div>
+                    {% for name, code in languages %}
+                      {% if name in ['hindi','marathi','spanish','french','german','chinese'] %}
+                        <label class="lang-checkbox"><input type="checkbox" name="languages" value="{{name}}"> {{name | capitalize}} ({{code}})</label>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                  <div style="margin-top:12px">
+                    <div class="muted small">All languages</div>
+                    <select name="languages" multiple size="6" style="width:100%;margin-top:6px">
+                      {% for name, code in languages %}
+                      <option value="{{name}}">{{name | capitalize}} ({{code}})</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="generateBar" style="margin-top:12px; display:flex; gap:8px; align-items:center">
+            <button id="submitBtn" class="primary" type="submit">Generate Subtitles</button>
+            <div id="spinnerWrap" style="display:none; width:48px; height:48px;"><div class="spinner" aria-hidden="true"></div></div>
+            <div class="small muted">Processing may take a while for large models — spinner indicates the job is running.</div>
+          </div>
+        </form>
+
+        <!-- Editor tab: embedded editor UI (inlined to avoid iframe cross-context issues) -->
+        <div class="tab-content" style="margin-top:18px">
+          <div id="tab-editor" class="tab-pane" style="display:none">
+            <div style="margin-top:12px;display:flex;gap:12px;align-items:center">
+              <label>Choose SRT
+                <select id="srtSelect"></select>
+              </label>
+              <button id="loadBtn" class="primary">Load</button>
+            </div>
+
+            <!-- Timeline & Editor Section -->
+            <div class="editor-section" style="margin-top:12px">
+              <audio id="audio" controls style="width:100%;margin-top:12px;display:none"></audio>
+
+              <div class="timeline" id="timeline"></div>
+
+              <div id="timeTooltip" class="time-tooltip" style="display:none"></div>
+
+              <div class="editor-actions" style="margin-top:8px;display:flex;gap:8px;align-items:center">
+                <button id="saveBtn" class="primary">Save SRT</button>
+                <button id="undoBtn" class="badge">Undo</button>
+                <div id="selectedBoundaryIndicator" class="badge" style="background:rgba(255,255,255,0.02);color:var(--muted)">Boundary: none</div>
+              </div>
+
+              <div class="segments-list" id="segmentsList"></div>
+            </div>
+          </div>
+
+        <div class="results" id="results"></div>
+
+        <!-- Progress Section (Hidden until processing starts) -->
+        <div id="progressSection" style="display:none;margin-top:12px;padding:16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h3 style="margin:0;font-size:16px">✨ Magic Happening...</h3>
+            <span id="progressStatus" class="badge" style="background:rgba(6,182,212,0.2);color:#06b6d4">Initializing</span>
+          </div>
+          
+          <!-- Progress steps -->
+          <div id="progressSteps" style="display:grid;gap:8px">
+            <div class="progress-step" data-step="transcribing" style="padding:8px;background:rgba(6,182,212,0.05);border-radius:6px;opacity:0.5;transition:all 0.3s">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="step-icon">⏳</span>
+                <span class="step-text">Transcribing audio...</span>
+              </div>
+            </div>
+            <div class="progress-step" data-step="translating" style="padding:8px;background:rgba(124,58,237,0.05);border-radius:6px;opacity:0.5;transition:all 0.3s">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="step-icon">🌍</span>
+                <span class="step-text">Translating to other languages...</span>
+              </div>
+            </div>
+            <div class="progress-step" data-step="exporting" style="padding:8px;background:rgba(236,72,153,0.1);border-radius:6px;opacity:0.5;transition:all 0.3s">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="step-icon">📦</span>
+                <span class="step-text">Exporting subtitles...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live updates -->
+          <div id="log" style="margin-top:12px;padding:12px;background:rgba(255,255,255,0.01);border-radius:8px;max-height:150px;overflow-y:auto;font-size:12px;color:var(--muted);border-left:3px solid rgba(6,182,212,0.3)"></div>
+        </div>
+
+        <div class="errors" id="errors">
+          {% if errors %}
+            <h3>Errors / skipped backends</h3>
+            <ul class="result-list">
+              {% for e in errors %}
+                <li>{{ e }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+
+        <p class="muted small" style="margin-top:14px">Tip: Run this inside a fresh virtualenv and install only the model packages you need to avoid dependency conflicts.</p>
+      </div>
+    </div>
+    </div>
+
+  <script src="/static/app.js"></script>
+  <script>
+    window.SUBTITLEGEN_LANGS = {{ languages|tojson }};
+  </script>
+  <script src="/static/editor.js"></script>
+    <!-- Install modal -->
+    <div id="installModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);align-items:center;justify-content:center">
+      <div style="background:#071021;padding:18px;border-radius:12px;max-width:600px;margin:auto;border:1px solid rgba(255,255,255,0.04)">
+        <h3 style="margin:0 0 8px">Install guidance</h3>
+        <div id="installCmd" style="font-family:monospace;background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;color:var(--muted)"></div>
+        <div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end">
+          <button id="copyInstall" class="primary">Copy</button>
+          <button id="closeInstall">Close</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

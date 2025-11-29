@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SubtitleGen</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="main-content">
+        <h1>SubtitleGen — Local UI</h1>
+        <p class="muted">Upload a video, choose an ASR backend and optional target languages, then generate subtitles locally.</p>
+
+        <form id="uploadForm" action="/generate" method="post" enctype="multipart/form-data">
+          <label>Video file
+            <input type="file" name="video" accept="video/*" id="videoFileInput" style="display:none" />
+            <div id="dropZone" style="margin-top:8px;padding:14px;border:2px dashed rgba(255,255,255,0.03);border-radius:10px;color:var(--muted);font-size:14px;cursor:pointer">
+              <div id="dropZoneText">Click or drag & drop a video file here. Supports resumable uploads.</div>
+            </div>
+            <input type="hidden" name="uploaded_filename" id="uploaded_filename" />
+          </label>
+
+          <!-- Main video preview (above tabs) - hidden until upload completes -->
+          <div id="videoPlayerContainer" style="display:none;margin-top:16px;">
+            <div class="video-wrapper" style="border-radius:12px;overflow:hidden;">
+              <video id="videoPlayerMain" controls style="width:100%;height:auto;background:#000"></video>
+              <div id="videoSubtitleOverlayMain" class="video-subtitle-overlay"></div>
+            </div>
+          </div>
+
+          <div class="tabs" role="tablist" aria-label="Main tabs">
+            <div class="tab active" data-target="tab-subtitle">Subtitle</div>
+            <div class="tab" data-target="tab-editor">Editor</div>
+          </div>
+
+            <div class="tab-content">
+            <div id="tab-subtitle" class="tab-pane" style="display:block">
+              <div class="muted">Choose an ASR backend. Installed backends are clickable; unavailable ones are dimmed.</div>
+
+              <input type="hidden" name="model" value="whisper" />
+              <div style="margin-top:12px;display:grid;grid-template-columns:1fr 320px;gap:12px;align-items:start">
+                <div>
+                  <div class="muted small">Choose an ASR backend. Installed backends are clickable; unavailable ones are dimmed.</div>
+                  <div class="models-grid" style="margin-top:8px">
+                    {% for m in models %}
+                    <div class="model-card {% if not m.available %}disabled{% endif %}" data-name="{{m.name}}">
+                      <div class="flex">
+                        <div>
+                          <div class="model-name">{{ m.name | upper }}</div>
+                          <div class="model-desc">{% if m.available %}Installed{% else %}Not installed{% endif %}</div>
+                        </div>
+                        <div style="margin-left:auto">
+                          <span class="badge">{% if m.available %}Ready{% else %}Missing{% endif %}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.03)">
+                  <div class="muted small">Target languages (optional)</div>
+                  <div style="margin-top:8px">
+                    <div class="muted small">Popular</div>
+                    {% for name, code in languages %}
+                      {% if name in ['hindi','marathi','spanish','french','german','chinese'] %}
+                        <label class="lang-checkbox"><input type="checkbox" name="languages" value="{{name}}"> {{name | capitalize}} ({{code}})</label>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                  <div style="margin-top:12px">
+                    <div class="muted small">All languages</div>
+                    <select name="languages" multiple size="6" style="width:100%;margin-top:6px">
+                      {% for name, code in languages %}
+                      <option value="{{name}}">{{name | capitalize}} ({{code}})</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px; display:flex; gap:8px; align-items:center">
+            <button id="submitBtn" class="primary" type="submit">Generate Subtitles</button>
+            <div id="spinnerWrap" style="display:none;align-items:center;gap:8px">
+              <div class="spinner" style="width:16px;height:16px;border:3px solid rgba(255,255,255,0.1);border-top-color:#06b6d4;border-radius:50%;animation:spin 0.6s linear infinite"></div>
+              <span class="muted">Processing...</span>
+            </div>
+          </div>
+
+        </form>
+
+        <div class="results" id="results">
+          {% if results %}
+            <h3>Generated files</h3>
+            <ul class="result-list">
+              {% for f in results %}
+                <li><a href="/files/{{ f }}">{{ f }}</a></li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+
+        <div class="logs card" style="margin-top:12px;padding:12px;background:transparent">
+          <div style="display:flex;justify-content:space-between;align-items:center"><strong>Live logs</strong><span class="muted small">Progress updates appear here</span></div>
+          <div id="log" style="margin-top:8px;max-height:200px;overflow:auto;font-size:13px;color:var(--muted)"></div>
+        </div>
+
+        <div class="errors" id="errors">
+          {% if errors %}
+            <h3>Errors / skipped backends</h3>
+            <ul class="result-list">
+              {% for e in errors %}
+                <li>{{ e }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+
+        <p class="muted small" style="margin-top:14px">Tip: Run this inside a fresh virtualenv and install only the model packages you need to avoid dependency conflicts.</p>
+      </div>
+    </div>
+
+  <script src="/static/app.js"></script>
+  <script src="/static/editor.js"></script>
+    <!-- Install modal -->
+    <div id="installModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);align-items:center;justify-content:center">
+      <div style="background:#071021;padding:18px;border-radius:12px;max-width:600px;margin:auto;border:1px solid rgba(255,255,255,0.04)">
+        <h3 style="margin:0 0 8px">Install guidance</h3>
+        <div id="installCmd" style="font-family:monospace;background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;color:var(--muted)"></div>
+        <div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end">
+          <button id="copyInstall" class="primary">Copy</button>
+          <button id="closeInstall">Close</button>
+        </div>
+      </div>
+    </div>
+    <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+  </body>
+</html>

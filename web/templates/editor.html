@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Subtitle Editor</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <style>
+      /* Larger timeline for visual subtitle bars */
+      .timeline{position:relative;height:140px;background:rgba(255,255,255,0.02);border-radius:12px;margin-top:12px;padding:8px}
+
+      /* Segment bars: readable, wrapped, pill with subtle glow */
+      .segment-bar{position:absolute;height:calc(100% - 16px);border-radius:12px;padding:10px 14px;color:#071021;overflow-wrap:break-word;white-space:normal;box-shadow:0 8px 20px rgba(2,6,23,0.6);font-size:16px;line-height:1.25}
+
+      /* Segments list: responsive cards in two columns on wide screens */
+      .segments-list{margin-top:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:12px}
+      .segment-row{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;background:linear-gradient(180deg, rgba(7,16,33,0.7), rgba(7,12,24,0.6));border:1px solid rgba(255,255,255,0.03)}
+      .segment-row .meta{display:flex;gap:8px;align-items:center;width:100%}
+      .segment-text{flex:1;width:100%;min-height:72px;padding:10px;border-radius:8px;background:rgba(0,0,0,0.25);color:var(--muted);resize:vertical}
+      .time-input{width:120px}
+      .editor-actions{display:flex;gap:8px;align-items:center}
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <h2>Subtitle Editor</h2>
+        <div class="muted small">Edit segments inline, click on timeline bars to jump, split or delete segments, and save.</div>
+
+        <div style="margin-top:12px;display:flex;gap:12px;align-items:center">
+          <label>Choose SRT
+            <select id="srtSelect"></select>
+          </label>
+          <button id="loadBtn" class="primary">Load</button>
+          <button id="restoreBtn" class="badge">Restore Backup</button>
+          <a id="backBtn" class="badge" href="/">Back</a>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <div id="selectedBoundaryIndicator" class="badge" style="background:rgba(255,255,255,0.02);color:var(--muted)">Boundary: none</div>
+            <div style="display:inline-flex;gap:6px;align-items:center">
+              <button class="badge" id="snapFrame24">1/24</button>
+              <button class="badge" id="snapFrame25">1/25</button>
+              <button class="badge" id="snapFrame30">1/30</button>
+              <button class="badge" id="snapFrame60">1/60</button>
+            </div>
+            <div style="display:inline-flex;gap:6px;align-items:center;margin-left:12px">
+              <button class="badge" id="paletteDefault">Palette A</button>
+              <button class="badge" id="paletteWarm">Palette B</button>
+              <button class="badge" id="paletteCool">Palette C</button>
+            </div>
+          </div>
+        </div>
+
+        <audio id="audio" controls style="width:100%;margin-top:12px"></audio>
+
+        <div class="timeline" id="timeline"></div>
+
+  <div id="timeTooltip" class="time-tooltip" style="display:none"></div>
+  <!-- Floating subtitle preview (bottom-center overlay) -->
+  <div id="subtitlePreview" style="display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:48px;z-index:2000;padding:12px 18px;border-radius:8px;background:rgba(0,0,0,0.75);color:#fff;font-size:20px;max-width:80%;text-align:center;box-shadow:0 6px 30px rgba(2,6,23,0.6);line-height:1.2"></div>
+
+        <div class="editor-actions" style="margin-top:8px">
+          <button id="saveBtn" class="primary">Save SRT</button>
+          <button id="undoBtn" class="badge">Undo</button>
+          <button id="exportBtn" class="badge">Export Timeline SVG</button>
+          <label style="margin-left:8px;color:var(--muted);font-size:13px">Snap:
+            <select id="snapSelect" style="margin-left:6px;padding:6px;border-radius:6px;background:transparent;color:inherit;border:1px solid rgba(255,255,255,0.04)">
+              <option value="0.01">0.01s</option>
+              <option value="0.05">0.05s</option>
+              <option value="0.1" selected>0.1s</option>
+              <option value="0.2">0.2s</option>
+            </select>
+          </label>
+          <div style="margin-left:12px;color:var(--muted);font-size:13px">Use ← / → to nudge selected boundary (click a handle first)</div>
+          <div class="muted small">You are editing files in `output/`. Saved SRT will overwrite the file (a .bak copy is created).</div>
+        </div>
+
+        <div class="segments-list" id="segmentsList"></div>
+      </div>
+    </div>
+
+    <script src="/static/editor.js"></script>
+  </body>
+</html>

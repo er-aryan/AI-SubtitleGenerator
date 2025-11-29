@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtualenvs
+.venv/
+venv/
+env/
+ENV/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+
+# Logs and runtime
+*.log
+*.pid
+*.seed
+
+# Python packaging
+build/
+dist/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Secrets/env
+.env
+.env.* 
+secrets.json
+credentials.json
+
+# Local data, large binaries and models
+media/
+models/
+output/
+uploads/
+
+# Temporary and caches
+*.tmp
+.cache/
+pip-wheel-metadata/
+
+# Optional: model checkpoints, torch artifacts
+*.pt
+*.pth
+*.ckpt
+*.tar.gz
